@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RANTAX — Loading</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    body {
+      width: 100vw; height: 100vh;
+      background: linear-gradient(180deg, #0c1628 0%, #1a2a4a 50%, #253b70 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: white; overflow: hidden;
+    }
+    .logo { font-size: 42px; font-weight: 900; margin-bottom: 10px; letter-spacing: 2px; }
+    .sub { font-size: 16px; color: #93c5fd; margin-bottom: 50px; }
+    .nama-user { font-size: 20px; font-weight: 600; color: #facc15; margin-bottom: 40px; }
+    .progress-bar {
+      width: 280px; height: 8px; background: rgba(255,255,255,0.1);
+      border-radius: 10px; overflow: hidden; margin-bottom: 20px;
+    }
+    .progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #2563eb, #5b9aff);
+      border-radius: 10px; transition: width 0.05s ease;
+      box-shadow: 0 0 10px rgba(37,99,235,0.5);
+    }
+    .persen { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+    .status { font-size: 14px; color: #9ca3af; }
+    .btn-skip {
+      margin-top: 60px; padding: 12px 30px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      color: white; border-radius: 10px; font-size: 15px; cursor: pointer;
+      display: none; transition: all 0.2s;
+    }
+    .btn-skip:hover { background: rgba(255,255,255,0.2); }
+  </style>
+</head>
+<body>
+
+  <div class="logo">RANTAX</div>
+  <div class="sub">SYSTEM INITIALIZING...</div>
+  <div class="nama-user" id="tampilNama">@Pengguna</div>
+
+  <div class="persen" id="persen">0%</div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progress"></div>
+  </div>
+  <div class="status" id="status">Memverifikasi akun...</div>
+
+  <button class="btn-skip" id="btnSkip" onclick="window.location.href='dashboard.html'">SKIP →</button>
+
+<script>
+// AMBIL NAMA DARI index.html — TETAP NYAMBUNG!
+const namaPengguna = localStorage.getItem('namaAkun') || "Pengguna";
+document.getElementById('tampilNama').textContent = "@" + namaPengguna;
+
+// ANIMASI LOADING 0 → 100%
+let nilai = 0;
+const progress = document.getElementById('progress');
+const persen = document.getElementById('persen');
+const status = document.getElementById('status');
+const btnSkip = document.getElementById('btnSkip');
+
+const statusList = [
+  "Memverifikasi akun...",
+  "Memuat sistem...",
+  "Menghubungkan server...",
+  "Menyiapkan antarmuka...",
+  "Selesai!"
+];
+
+const interval = setInterval(() => {
+  nilai++;
+  progress.style.width = nilai + "%";
+  persen.textContent = nilai + "%";
+  
+  // Ganti teks status
+  const idx = Math.floor(nilai / 20);
+  if (idx < statusList.length) status.textContent = statusList[idx];
+
+  if (nilai >= 100) {
+    clearInterval(interval);
+    setTimeout(() => {
+      window.location.href = "dashboard.html"; // ← KE DASHBOARD
+    }, 800);
+    btnSkip.style.display = 'block'; // Muncul tombol skip
+  }
+}, 40);
+</script>
+
+</body>
+</html>
