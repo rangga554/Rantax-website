@@ -4,6 +4,9 @@
   <title>Dashboard — RANTAX</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <!-- === FIREBASE SDK === -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-database-compat.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
     html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0b0f; }
@@ -218,6 +221,24 @@
 </div>
 
 <script>
+// ==============================================================
+// 🔧 FIREBASE CONFIG — GANTI DENGAN DATA FIREBASE KAMU SENDIRI!
+// ==============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCqXZ8_XXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  authDomain: "ratta-xxxxxx.firebaseapp.com",
+  databaseURL: "https://ratta-xxxxxx-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "ratta-xxxxxx",
+  storageBucket: "ratta-xxxxxx.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:xxxxxxxxxxxxxxxxxxxxxxxxxx"
+};
+
+// === INISIALISASI FIREBASE ===
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const chatRef = db.ref("chat-umum"); // Semua pesan tersimpan di sini!
+
 // === AMBIL NAMA DARI LOCALSTORAGE ===
 const namaPengguna = localStorage.getItem('namaAkun') || "Pengguna";
 document.getElementById('namaUserHeader').textContent = "@" + namaPengguna;
@@ -235,16 +256,25 @@ function ambilWaktuLengkap() {
   const detik = String(d.getSeconds()).padStart(2,'0');
   return `${jam}:${menit}:${detik}`;
 }
-// Update setiap detik
 setInterval(() => {
   document.getElementById('waktuHeader').textContent = ambilWaktuLengkap();
 }, 1000);
 
-// === DAFTAR ORANG — HANYA SECURITY ===
+// === DAFTAR ===
 const semuaPengguna = ["Security"];
 const NAMA_AI = "Security";
 let daftarChat = [];
 let balasKe = null;
+let replyKey = null; // Simpan key pesan yang dibalas
+
+// === AMBIL PESAN DARI FIREBASE — OTOMATIS REAL-TIME ===
+chatRef.on('value', (snapshot) => {
+  daftarChat = [];
+  snapshot.forEach((child) => {
+    daftarChat.push({ key: child.key, ...child.val() });
+  });
+  tampilkanChat(); // Auto refresh untuk SEMUA perangkat!
+});
 
 // === WAKTU UNTUK CHAT ===
 function ambilWaktu() {
@@ -313,7 +343,7 @@ async function jawabDariAI(pesanPengguna) {
   }
 }
 
-// === RENDER CHAT — SELALU SCROLL KE BAWAH ===
+// === RENDER CHAT ===
 function tampilkanChat() {
   const area = document.getElementById('chatArea');
   area.innerHTML = '';
@@ -325,8 +355,8 @@ function tampilkanChat() {
     
     div.innerHTML = `
       <div class="bubble-opsi">
-        <button class="btn-reply" onclick="balasPesan(${i})">↩️ Balas</button>
-        ${c.pengirim === namaPengguna ? `<button class="btn-hapus" onclick="hapusPesan(${i})">🗑️ Hapus</button>` : ''}
+        <button class="btn-reply" onclick="balasPesan(${i}, '${c.key}')">↩️ Balas</button>
+        ${c.pengirim === namaPengguna ? `<button class="btn-hapus" onclick="hapusPesan('${c.key}')">🗑️ Hapus</button>` : ''}
       </div>
       ${c.pengirim !== namaPengguna ? `<div class="nama-pengirim">@${c.pengirim}</div>` : ''}
       ${c.balas ? `<div class="reply-kotak">Membalas: @${c.balas.nama} — ${c.balas.teks}</div>` : ''}
@@ -348,43 +378,50 @@ function tampilkanChat() {
   });
 }
 
-// === KIRIM PESAN ===
+// === KIRIM PESAN KE FIREBASE — SEMUA ORANG LANGSUNG LIHAT! ===
 async function kirimPesan() {
   const teks = document.getElementById('inputPesan').value.trim();
   if (!teks && !balasKe) return;
-  
-  daftarChat.push({
+
+  const pesanBaru = {
     pengirim: namaPengguna,
     teks: teks,
     waktu: ambilWaktu(),
-    balas: balasKe ? { nama: daftarChat[balasKe].pengirim, teks: daftarChat[balasKe].teks } : null
-  });
-  
+    timestamp: firebase.database.ServerValue.TIMESTAMP,
+    balas: balasKe ? { 
+      nama: daftarChat.find(c => c.key === replyKey)?.pengirim || "Tidak Diketahui", 
+      teks: daftarChat.find(c => c.key === replyKey)?.teks?.substring(0,50) || "" 
+    } : null
+  };
+
+  // Kirim ke Firebase — SEMUA PERANGKAT TERIMA OTOMATIS!
+  await chatRef.push(pesanBaru);
+
   document.getElementById('inputPesan').value = '';
   document.getElementById('daftarTag').style.display = 'none';
   balasKe = null;
+  replyKey = null;
   document.getElementById('replyBar').style.display = 'none';
-  tampilkanChat();
 
-  // === KALAU TAG SECURITY → PANGGIL AI ===
+  // === KALAU TAG SECURITY → AI JAWAB OTOMATIS ===
   if (teks.includes('@' + NAMA_AI)) {
-    const idxLoad = daftarChat.length;
-    daftarChat.push({
+    // Tambah pesan "sedang mengetik" dari AI
+    const loadMsg = await chatRef.push({
       pengirim: NAMA_AI,
       teks: "Sedang berpikir...",
       waktu: ambilWaktu(),
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
       sedangLoad: true
     });
-    tampilkanChat();
 
+    // Ambil jawaban
     const jawaban = await jawabDariAI(teks);
     
-    daftarChat[idxLoad] = {
-      pengirim: NAMA_AI,
+    // Update dengan jawaban asli
+    await chatRef.child(loadMsg.key).update({
       teks: jawaban,
-      waktu: ambilWaktu()
-    };
-    tampilkanChat();
+      sedangLoad: false
+    });
   }
 }
 
@@ -393,41 +430,56 @@ function kirimFoto(input) {
   if (!input.files.length) return;
   const file = input.files[0];
   const url = URL.createObjectURL(file);
-  daftarChat.push({ pengirim: namaPengguna, gambar: url, waktu: ambilWaktu() });
+  chatRef.push({ 
+    pengirim: namaPengguna, 
+    gambar: url, 
+    waktu: ambilWaktu(),
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
   input.value = '';
-  tampilkanChat();
 }
 function kirimVidio(input) {
   if (!input.files.length) return;
   const file = input.files[0];
   const url = URL.createObjectURL(file);
-  daftarChat.push({ pengirim: namaPengguna, vidio: url, waktu: ambilWaktu() });
+  chatRef.push({ 
+    pengirim: namaPengguna, 
+    vidio: url, 
+    waktu: ambilWaktu(),
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
   input.value = '';
-  tampilkanChat();
 }
 function kirimFile(input) {
   if (!input.files.length) return;
   const file = input.files[0];
-  daftarChat.push({ pengirim: namaPengguna, file: { nama: file.name }, waktu: ambilWaktu() });
+  chatRef.push({ 
+    pengirim: namaPengguna, 
+    file: { nama: file.name }, 
+    waktu: ambilWaktu(),
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
   input.value = '';
-  tampilkanChat();
 }
 
 // === REPLY & HAPUS ===
-function balasPesan(index) {
+function balasPesan(index, key) {
   balasKe = index;
+  replyKey = key;
   document.getElementById('replyNama').textContent = "Membalas: @" + daftarChat[index].pengirim;
   document.getElementById('replyPesan').textContent = daftarChat[index].teks?.substring(0,20) + "...";
   document.getElementById('replyBar').style.display = 'block';
 }
 function batalReply() {
   balasKe = null;
+  replyKey = null;
   document.getElementById('replyBar').style.display = 'none';
 }
-function hapusPesan(index) {
-  if (daftarChat[index].pengirim !== namaPengguna) return alert('❌ Hanya bisa hapus pesan sendiri!');
-  daftarChat.splice(index, 1);
-  tampilkanChat();
+async function hapusPesan(key) {
+  const pesan = daftarChat.find(c => c.key === key);
+  if (!pesan || pesan.pengirim !== namaPengguna) return alert('❌ Hanya bisa hapus pesan sendiri!');
+  if (!confirm('Yakin hapus pesan ini?')) return;
+  await chatRef.child(key).remove();
 }
 
 // === SETTINGS ===
@@ -445,13 +497,17 @@ function logout() {
   window.location.href = 'index.html';
 }
 
-// === PESAN AWAL DARI SECURITY ===
-daftarChat.push({ 
-  pengirim: NAMA_AI, 
-  teks: `Halo @${namaPengguna}! Selamat datang di RANTAX PROJECT. 👋\nSaya @Security, asisten AI website ini. Ketik @Security untuk bertanya.`, 
-  waktu: ambilWaktu() 
-});
-tampilkanChat();
+// === PESAN AWAL — JIKA BELUM ADA CHAT ===
+setTimeout(() => {
+  if (daftarChat.length === 0) {
+    chatRef.push({
+      pengirim: NAMA_AI,
+      teks: `Halo @${namaPengguna}! Selamat datang di RANTAX PROJECT. 👋\nSaya @Security, asisten AI website ini. Ketik @Security untuk bertanya.`,
+      waktu: ambilWaktu(),
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+  }
+}, 1000);
 </script>
 
 </body>
