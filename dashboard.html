@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard — RANTAX</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0b0f; }
+
+    /* ==== LATAR BELAKANG ==== */
+    .latar {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    }
+
+    /* ==== HEADER — DENGAN FOTO PROFIL ==== */
+    .header {
+      position: fixed; top: 0; left: 0; right: 0; height: 55px;
+      background: rgba(15,23,42,0.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 15px; z-index: 15;
+    }
+    .header-kiri { display: flex; align-items: center; gap: 10px; }
+    .pp-user {
+      width: 36px; height: 36px; border-radius: 50%;
+      object-fit: cover; border: 2px solid #facc15;
+      background: rgba(255,255,255,0.1);
+    }
+    .nama-user { color: white; font-size: 15px; font-weight: 700; line-height: 1.3; }
+    .waktu-header { color: #94a3b8; font-size: 11px; }
+    .notifikasi-tag {
+      position: absolute; top: 8px; right: 55px;
+      background: #facc15; color: #000; font-size: 11px; font-weight: bold;
+      padding: 2px 6px; border-radius: 10px; display: none;
+      animation: kedip 1s infinite;
+    }
+    @keyframes kedip { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+    .btn-settings {
+      width: 40px; height: 40px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.1); color: white; font-size: 18px;
+      cursor: pointer; transition: 0.2s;
+    }
+    .btn-settings:active { transform: scale(0.92); background: rgba(255,255,255,0.2); }
+
+    /* ==== AREA CHAT ==== */
+    .chat-wrapper {
+      position: absolute; top: 55px; bottom: 80px; left: 0; right: 0;
+      overflow-y: auto; padding: 15px; z-index: 5;
+    }
+    .chat-wrapper::-webkit-scrollbar { width: 4px; }
+    .chat-wrapper::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+
+    /* ==== BUBBLE CHAT ==== */
+    .bubble-saya {
+      max-width: 75%; margin-left: auto; margin-bottom: 12px;
+      background: linear-gradient(135deg, #2563eb, #3b82f6);
+      border-radius: 18px 18px 4px 18px; padding: 12px 15px; color: white;
+      position: relative;
+    }
+    .bubble-orang {
+      max-width: 75%; margin-right: auto; margin-bottom: 12px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 18px 18px 18px 4px; padding: 12px 15px; color: white;
+      position: relative;
+    }
+    .nama-pengirim { font-size: 12px; color: #93c5fd; margin-bottom: 4px; font-weight: 600; }
+    .pesan-teks { font-size: 15px; line-height: 1.5; word-break: break-word; }
+    .pesan-teks .tag { color: #facc15; font-weight: bold; }
+    .waktu { font-size: 11px; color: rgba(255,255,255,0.6); text-align: right; margin-top: 6px; }
+    .bubble-gambar { max-width: 220px; border-radius: 12px; margin-top: 6px; cursor: pointer; }
+    .bubble-video { max-width: 220px; border-radius: 12px; margin-top: 6px; cursor: pointer; }
+    .bubble-file { background: rgba(255,255,255,0.15); padding: 10px 12px; border-radius: 8px; margin-top: 6px; }
+    .bubble-ai { border-left: 3px solid #facc15; }
+
+    /* ==== TOMBOL DI BUBBLE ==== */
+    .bubble-opsi {
+      position: absolute; top: 5px; right: 8px; opacity: 0; transition: opacity 0.2s;
+    }
+    .bubble-saya:hover .bubble-opsi, .bubble-orang:hover .bubble-opsi { opacity: 1; }
+    .btn-reply, .btn-hapus {
+      background: rgba(0,0,0,0.3); border: none; color: white; font-size: 11px;
+      padding: 3px 6px; border-radius: 4px; cursor: pointer; margin-left: 4px;
+    }
+    .btn-hapus { color: #ff6b6b; }
+
+    /* ==== REPLY PREVIEW ==== */
+    .reply-kotak {
+      background: rgba(0,0,0,0.25); border-left: 3px solid #facc15;
+      padding: 6px 8px; border-radius: 4px; margin-bottom: 6px; font-size: 13px;
+      color: #e5e7eb;
+    }
+
+    /* ==== KOTAK INPUT ==== */
+    .input-wrapper {
+      position: fixed; bottom: 0; left: 0; right: 0; height: 80px;
+      background: rgba(15,23,42,0.95); backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex; align-items: center; padding: 0 12px; gap: 10px; z-index: 15;
+    }
+    .btn-attach {
+      width: 42px; height: 42px; border-radius: 50%; border: none;
+      background: rgba(255,255,255,0.1); color: white; font-size: 20px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .input-pesan {
+      flex: 1; height: 45px; border-radius: 22px; border: none;
+      background: rgba(255,255,255,0.1); color: white; font-size: 15px;
+      padding: 0 18px; outline: none;
+    }
+    .btn-kirim {
+      width: 42px; height: 42px; border-radius: 50%; border: none;
+      background: #2563eb; color: white; font-size: 18px;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .reply-bar {
+      position: fixed; bottom: 85px; left: 15px; right: 15px;
+      background: rgba(37,99,235,0.2); border: 1px solid rgba(37,99,235,0.4);
+      border-radius: 10px; padding: 8px 12px; color: white; font-size: 14px;
+      display: none; z-index: 14;
+    }
+    .btn-batal-reply { margin-left: 10px; color: #ff6b6b; cursor: pointer; font-weight: bold; }
+
+    /* ==== DAFTAR TAG — HANYA ADA SECURITY ==== */
+    .daftar-tag {
+      position: fixed; bottom: 130px; left: 15px; right: 15px;
+      background: #1e293b; border-radius: 12px; max-height: 200px; overflow-y: auto;
+      display: none; z-index: 16; border: 1px solid rgba(255,255,255,0.15);
+    }
+    .item-tag {
+      padding: 12px 15px; color: white; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .item-tag:hover { background: rgba(37,99,235,0.3); }
+    .loading-ai { font-style: italic; color: #9ca3af; }
+
+    /* ==== FRAME SETTINGS ==== */
+    .overlay-settings {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7); display: none; z-index: 20;
+    }
+    .frame-settings {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 340px; background: #1e293b; border-radius: 20px;
+      overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    }
+    .vidio-settings { width: 100%; height: 180px; object-fit: cover; }
+    .isi-settings { padding: 20px; color: white; }
+    .nama-profil { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
+    .btn-profil, .btn-logout {
+      width: 100%; height: 48px; border: none; border-radius: 12px;
+      background: rgba(255,255,255,0.1); color: white; font-size: 16px;
+      cursor: pointer; margin-bottom: 10px;
+    }
+    .btn-logout { background: #dc2626; }
+    .btn-tutup-settings {
+      width: 100%; height: 48px; border: none; border-radius: 12px;
+      background: #2563eb; color: white; font-size: 16px; font-weight: 600;
+      cursor: pointer; margin-top: 10px;
+    }
+    #fileInput, #fotoInput, #vidioInput { display: none; }
+  </style>
+</head>
+<body>
+
+<!-- LATAR -->
+<div class="latar"></div>
+
+<!-- HEADER — DENGAN FOTO + NAMA + WAKTU -->
+<div class="header">
+  <div class="header-kiri">
+    <img id="ppUser" class="pp-user" src="https://via.placeholder.com/40/1e293b/ffffff?text=?" alt="PP">
+    <div>
+      <div class="nama-user" id="namaUserHeader">@Pengguna</div>
+      <div class="waktu-header" id="waktuHeader">--:--:--</div>
+    </div>
+  </div>
+  <div class="notifikasi-tag" id="notifTag">@Kamu</div>
+  <button class="btn-settings" onclick="bukaSettings()">⚙️</button>
+</div>
+
+<!-- AREA CHAT -->
+<div class="chat-wrapper" id="chatArea"></div>
+
+<!-- REPLY BAR -->
+<div class="reply-bar" id="replyBar">
+  <span id="replyNama">Membalas:</span>
+  <span id="replyPesan"></span>
+  <span class="btn-batal-reply" onclick="batalReply()">✕</span>
+</div>
+
+<!-- DAFTAR TAG — HANYA SECURITY -->
+<div class="daftar-tag" id="daftarTag"></div>
+
+<!-- INPUT CHAT -->
+<div class="input-wrapper">
+  <button class="btn-attach" onclick="document.getElementById('fotoInput').click()">📎</button>
+  <input type="file" id="fotoInput" accept="image/*" onchange="kirimFoto(this)">
+  <input type="file" id="vidioInput" accept="video/*" onchange="kirimVidio(this)">
+  <input type="file" id="fileInput" onchange="kirimFile(this)">
+  <input type="text" class="input-pesan" id="inputPesan" placeholder="Ketik pesan..." oninput="cekTag(this.value)" onkeypress="if(event.key==='Enter') kirimPesan()">
+  <button class="btn-kirim" onclick="kirimPesan()">➤</button>
+</div>
+
+<!-- FRAME SETTINGS -->
+<div class="overlay-settings" id="overlaySettings" onclick="tutupSettings()">
+  <div class="frame-settings" onclick="event.stopPropagation()">
+    <video class="vidio-settings" autoplay loop playsinline>
+      <source src="assets/videos/splash.mp4" type="video/mp4">
+    </video>
+    <div class="isi-settings">
+      <div class="nama-profil" id="namaProfilSettings">@NamaPengguna</div>
+      <button class="btn-profil" onclick="window.location.href='profil.html'">👤 Profil</button>
+      <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+      <button class="btn-tutup-settings" onclick="tutupSettings()">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === AMBIL NAMA DARI LOCALSTORAGE ===
+const namaPengguna = localStorage.getItem('namaAkun') || "Pengguna";
+document.getElementById('namaUserHeader').textContent = "@" + namaPengguna;
+document.getElementById('namaProfilSettings').textContent = "@" + namaPengguna;
+
+// === TAMPILKAN FOTO PROFIL ===
+const fotoPP = localStorage.getItem('fotoProfil');
+if (fotoPP) document.getElementById('ppUser').src = fotoPP;
+
+// === WAKTU — JAM:MENIT:DETIK BERJALAN ===
+function ambilWaktuLengkap() {
+  const d = new Date();
+  const jam = String(d.getHours()).padStart(2,'0');
+  const menit = String(d.getMinutes()).padStart(2,'0');
+  const detik = String(d.getSeconds()).padStart(2,'0');
+  return `${jam}:${menit}:${detik}`;
+}
+// Update setiap detik
+setInterval(() => {
+  document.getElementById('waktuHeader').textContent = ambilWaktuLengkap();
+}, 1000);
+
+// === DAFTAR ORANG — HANYA SECURITY ===
+const semuaPengguna = ["Security"];
+const NAMA_AI = "Security";
+let daftarChat = [];
+let balasKe = null;
+
+// === WAKTU UNTUK CHAT ===
+function ambilWaktu() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+}
+
+// === CEK TAG @ — HANYA MUNCUL SECURITY ===
+function cekTag(teks) {
+  const daftarTag = document.getElementById('daftarTag');
+  if (teks.includes('@')) {
+    daftarTag.innerHTML = '';
+    semuaPengguna.forEach(nama => {
+      const item = document.createElement('div');
+      item.className = 'item-tag';
+      item.textContent = '@' + nama;
+      item.onclick = () => {
+        document.getElementById('inputPesan').value = teks + nama + ' ';
+        daftarTag.style.display = 'none';
+      };
+      daftarTag.appendChild(item);
+    });
+    daftarTag.style.display = 'block';
+  } else {
+    daftarTag.style.display = 'none';
+  }
+}
+
+// === PANGGIL API AI ===
+async function jawabDariAI(pesanPengguna) {
+  const systemPrompt = "Kamu adalah Security AI. Jawab hanya tentang website RANTAX PROJECT ini saja. Jangan buatkan script atau kode program. Jawab singkat dan jelas.";
+  
+  try {
+    const res = await fetch("https://api.free.ai/v1/chat/", {
+      method: "POST",
+      headers: {
+        "sec-ch-ua-platform": "\"Android\"",
+        "user-agent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36",
+        "content-type": "application/json",
+        "sec-ch-ua": "\"Not=A?Brand\";v=\"99\", \"Google Chrome\";v=\"151\", \"Chromium\";v=\"151\"",
+        "sec-ch-ua-mobile": "?1",
+        "accept": "*/*",
+        "origin": "https://free.ai",
+        "sec-fetch-site": "same-site",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-dest": "empty"
+      },
+      body: JSON.stringify({
+        model: "qwen7b",
+        stream: false,
+        max_tokens: 120,
+        lang: "id",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: pesanPengguna }
+        ]
+      })
+    });
+
+    if (!res.ok) throw new Error("API Error");
+    const data = await res.json();
+    return data.choices?.[0]?.message?.content || "Saya Security AI. Saya hanya bisa bantu tentang website ini.";
+  } catch (err) {
+    console.log("API Error:", err);
+    return "Saya Security AI. Hanya bisa bantu informasi tentang website ini.";
+  }
+}
+
+// === RENDER CHAT — SELALU SCROLL KE BAWAH ===
+function tampilkanChat() {
+  const area = document.getElementById('chatArea');
+  area.innerHTML = '';
+  daftarChat.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.className = c.pengirim === namaPengguna ? 'bubble-saya' : 'bubble-orang' + (c.pengirim === NAMA_AI ? ' bubble-ai' : '');
+    
+    let teksFormatted = (c.teks || '').replace(/@(\w+)/g, '<span class="tag">@$1</span>');
+    
+    div.innerHTML = `
+      <div class="bubble-opsi">
+        <button class="btn-reply" onclick="balasPesan(${i})">↩️ Balas</button>
+        ${c.pengirim === namaPengguna ? `<button class="btn-hapus" onclick="hapusPesan(${i})">🗑️ Hapus</button>` : ''}
+      </div>
+      ${c.pengirim !== namaPengguna ? `<div class="nama-pengirim">@${c.pengirim}</div>` : ''}
+      ${c.balas ? `<div class="reply-kotak">Membalas: @${c.balas.nama} — ${c.balas.teks}</div>` : ''}
+      <div class="pesan-teks ${c.sedangLoad ? 'loading-ai' : ''}">${teksFormatted}</div>
+      ${c.gambar ? `<img src="${c.gambar}" class="bubble-gambar" onclick="window.open('${c.gambar}','_blank')">` : ''}
+      ${c.vidio ? `<video src="${c.vidio}" class="bubble-video" controls></video>` : ''}
+      ${c.file ? `<div class="bubble-file">📄 ${c.file.nama}</div>` : ''}
+      <div class="waktu">${c.waktu}</div>
+    `;
+    area.appendChild(div);
+  });
+  area.scrollTop = area.scrollHeight;
+
+  // Notifikasi kalau di-tag
+  daftarChat.forEach(c => {
+    if (c.teks && c.teks.includes('@' + namaPengguna) && c.pengirim !== namaPengguna) {
+      document.getElementById('notifTag').style.display = 'block';
+    }
+  });
+}
+
+// === KIRIM PESAN ===
+async function kirimPesan() {
+  const teks = document.getElementById('inputPesan').value.trim();
+  if (!teks && !balasKe) return;
+  
+  daftarChat.push({
+    pengirim: namaPengguna,
+    teks: teks,
+    waktu: ambilWaktu(),
+    balas: balasKe ? { nama: daftarChat[balasKe].pengirim, teks: daftarChat[balasKe].teks } : null
+  });
+  
+  document.getElementById('inputPesan').value = '';
+  document.getElementById('daftarTag').style.display = 'none';
+  balasKe = null;
+  document.getElementById('replyBar').style.display = 'none';
+  tampilkanChat();
+
+  // === KALAU TAG SECURITY → PANGGIL AI ===
+  if (teks.includes('@' + NAMA_AI)) {
+    const idxLoad = daftarChat.length;
+    daftarChat.push({
+      pengirim: NAMA_AI,
+      teks: "Sedang berpikir...",
+      waktu: ambilWaktu(),
+      sedangLoad: true
+    });
+    tampilkanChat();
+
+    const jawaban = await jawabDariAI(teks);
+    
+    daftarChat[idxLoad] = {
+      pengirim: NAMA_AI,
+      teks: jawaban,
+      waktu: ambilWaktu()
+    };
+    tampilkanChat();
+  }
+}
+
+// === KIRIM FOTO/VIDEO/FILE ===
+function kirimFoto(input) {
+  if (!input.files.length) return;
+  const file = input.files[0];
+  const url = URL.createObjectURL(file);
+  daftarChat.push({ pengirim: namaPengguna, gambar: url, waktu: ambilWaktu() });
+  input.value = '';
+  tampilkanChat();
+}
+function kirimVidio(input) {
+  if (!input.files.length) return;
+  const file = input.files[0];
+  const url = URL.createObjectURL(file);
+  daftarChat.push({ pengirim: namaPengguna, vidio: url, waktu: ambilWaktu() });
+  input.value = '';
+  tampilkanChat();
+}
+function kirimFile(input) {
+  if (!input.files.length) return;
+  const file = input.files[0];
+  daftarChat.push({ pengirim: namaPengguna, file: { nama: file.name }, waktu: ambilWaktu() });
+  input.value = '';
+  tampilkanChat();
+}
+
+// === REPLY & HAPUS ===
+function balasPesan(index) {
+  balasKe = index;
+  document.getElementById('replyNama').textContent = "Membalas: @" + daftarChat[index].pengirim;
+  document.getElementById('replyPesan').textContent = daftarChat[index].teks?.substring(0,20) + "...";
+  document.getElementById('replyBar').style.display = 'block';
+}
+function batalReply() {
+  balasKe = null;
+  document.getElementById('replyBar').style.display = 'none';
+}
+function hapusPesan(index) {
+  if (daftarChat[index].pengirim !== namaPengguna) return alert('❌ Hanya bisa hapus pesan sendiri!');
+  daftarChat.splice(index, 1);
+  tampilkanChat();
+}
+
+// === SETTINGS ===
+function bukaSettings() {
+  document.getElementById('overlaySettings').style.display = 'block';
+}
+function tutupSettings() {
+  document.getElementById('overlaySettings').style.display = 'none';
+}
+
+// === LOGOUT ===
+function logout() {
+  localStorage.removeItem('namaAkun');
+  localStorage.removeItem('akunRantax');
+  window.location.href = 'index.html';
+}
+
+// === PESAN AWAL DARI SECURITY ===
+daftarChat.push({ 
+  pengirim: NAMA_AI, 
+  teks: `Halo @${namaPengguna}! Selamat datang di RANTAX PROJECT. 👋\nSaya @Security, asisten AI website ini. Ketik @Security untuk bertanya.`, 
+  waktu: ambilWaktu() 
+});
+tampilkanChat();
+</script>
+
+</body>
+</html>
