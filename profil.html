@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Profil — RANTAX</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+    html, body {
+      width: 100%; min-height: 100vh;
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+      color: white; padding: 20px; padding-bottom: 40px;
+    }
+
+    /* ==== TOMBOL BACK ==== */
+    .btn-back {
+      position: absolute; top: 15px; left: 15px;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,0.1); border: none; color: white;
+      font-size: 18px; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      transition: 0.2s; z-index: 10;
+    }
+    .btn-back:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
+
+    /* ==== KOTAK UTAMA ==== */
+    .container { max-width: 360px; margin: 70px auto 0 auto; }
+    .judul { text-align: center; font-size: 26px; font-weight: 800; margin-bottom: 30px; }
+
+    /* ==== FOTO PROFIL ==== */
+    .pp-wrapper {
+      position: relative; width: 130px; height: 130px;
+      margin: 0 auto 25px auto; cursor: pointer;
+    }
+    .pp-foto {
+      width: 100%; height: 100%; border-radius: 50%;
+      object-fit: cover; border: 3px solid #facc15;
+      background: rgba(255,255,255,0.1);
+    }
+    .pp-ketuk {
+      position: absolute; bottom: 0; right: 0;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: #2563eb; color: white; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      border: 3px solid #0f172a;
+    }
+    #inputFoto { display: none; }
+
+    /* ==== INFO AKUN ==== */
+    .info-box {
+      background: rgba(255,255,255,0.08); border-radius: 16px;
+      padding: 20px; margin-bottom: 20px;
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(10px);
+    }
+    .label { font-size: 13px; color: #94a3b8; margin-bottom: 5px; }
+    .nilai { font-size: 17px; font-weight: 600; margin-bottom: 15px; word-break: break-all; }
+    .batas-ganti {
+      font-size: 13px; color: #facc15; margin-top: -10px; margin-bottom: 15px;
+    }
+
+    /* ==== INPUT ==== */
+    .input-field {
+      width: 100%; height: 50px; margin-bottom: 8px;
+      padding: 0 15px; border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.2);
+      background: rgba(0,0,0,0.2); color: white;
+      font-size: 15px; outline: none;
+    }
+    .input-field:focus { border-color: #5b9aff; }
+    .input-field:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ==== TOMBOL ==== */
+    .btn-simpan {
+      width: 100%; height: 52px; border-radius: 12px;
+      border: none; background: linear-gradient(90deg, #2563eb, #5b9aff);
+      color: white; font-size: 16px; font-weight: 700;
+      cursor: pointer; margin-top: 10px; transition: 0.2s;
+    }
+    .btn-simpan:active { transform: scale(0.97); }
+    .btn-simpan:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ==== PESAN ==== */
+    .pesan {
+      margin-top: 15px; text-align: center;
+      font-size: 14px; display: none;
+    }
+    .pesan.benar { color: #4ade80; display: block; }
+    .pesan.salah { color: #ff6b6b; display: block; }
+  </style>
+</head>
+<body>
+
+<!-- BACK -->
+<button class="btn-back" onclick="window.location.href='dashboard.html'">←</button>
+
+<!-- KOTAK UTAMA -->
+<div class="container">
+  <h1 class="judul">Profil Saya</h1>
+
+  <!-- FOTO PROFIL -->
+  <div class="pp-wrapper" onclick="document.getElementById('inputFoto').click()">
+    <img id="fotoProfil" class="pp-foto" src="https://via.placeholder.com/130/1e293b/ffffff?text=?" alt="PP">
+    <span class="pp-ketuk">📷</span>
+  </div>
+  <input type="file" id="inputFoto" accept="image/*" onchange="gantiFoto(this)">
+
+  <!-- INFO & EDIT NAMA -->
+  <div class="info-box">
+    <div class="label">Nama Pengguna</div>
+    <input type="text" id="editNama" class="input-field" placeholder="Nama Pengguna" maxlength="15">
+    <div class="batas-ganti" id="batasNama">✅ Bisa diganti kapan saja</div>
+
+    <div class="label">Kode / Password</div>
+    <input type="password" id="editKode" class="input-field" placeholder="Kode Baru" maxlength="20">
+    <div class="batas-ganti" id="batasKode">⚠️ Bisa diganti 1x dalam 5 hari</div>
+
+    <button class="btn-simpan" id="btnSimpan" onclick="simpanPerubahan()">SIMPAN PERUBAHAN</button>
+    <div class="pesan" id="pesanProfil"></div>
+  </div>
+</div>
+
+<script>
+// === DATA AKUN ===
+const NAMA_ADMIN = "rangga";
+const KODE_ADMIN = "rangga";
+
+// === BACA DATA DARI LOCALSTORAGE ===
+function bacaAkun() {
+  const data = localStorage.getItem('akunRantax');
+  return data ? JSON.parse(data) : { username: "Pengguna", kode: "" };
+}
+function simpanAkun(akun) {
+  localStorage.setItem('akunRantax', JSON.stringify(akun));
+}
+
+// === FOTO PROFIL ===
+function gantiFoto(input) {
+  if (!input.files.length) return;
+  const file = input.files[0];
+  const url = URL.createObjectURL(file);
+  document.getElementById('fotoProfil').src = url;
+  localStorage.setItem('fotoProfil', url);
+}
+
+// === CEK BATAS GANTI — 5 HARI ===
+function cekBatasGanti() {
+  const sekarang = Date.now();
+  const limaHari = 5 * 24 * 60 * 60 * 1000; // 5 hari dalam ms
+  const terakhirGantiKode = parseInt(localStorage.getItem('terakhirGantiKode') || "0");
+  const sisaWaktu = terakhirGantiKode + limaHari - sekarang;
+
+  const btnSimpan = document.getElementById('btnSimpan');
+  const editKode = document.getElementById('editKode');
+  const batasKode = document.getElementById('batasKode');
+
+  if (sisaWaktu > 0) {
+    const hari = Math.floor(sisaWaktu / (24 * 60 * 60 * 1000));
+    const jam = Math.floor((sisaWaktu % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+    batasKode.textContent = `⏳ Tunggu ${hari} hari ${jam} jam lagi untuk ganti kode`;
+    batasKode.style.color = "#f87171";
+    editKode.disabled = true;
+    btnSimpan.disabled = false; // Nama tetap bisa diganti
+  } else {
+    batasKode.textContent = "✅ Bisa diganti sekarang";
+    batasKode.style.color = "#4ade80";
+    editKode.disabled = false;
+  }
+}
+
+// === SIMPAN PERUBAHAN ===
+function simpanPerubahan() {
+  const namaBaru = document.getElementById('editNama').value.trim();
+  const kodeBaru = document.getElementById('editKode').value.trim();
+  const pesan = document.getElementById('pesanProfil');
+  const akun = bacaAkun();
+  const sekarang = Date.now();
+  const limaHari = 5 * 24 * 60 * 60 * 1000;
+  const terakhirGantiKode = parseInt(localStorage.getItem('terakhirGantiKode') || "0");
+
+  // === VALIDASI NAMA ===
+  if (namaBaru && namaBaru !== akun.username) {
+    if (namaBaru.length < 2) {
+      pesan.className = 'pesan salah';
+      pesan.textContent = '❌ Nama minimal 2 karakter!';
+      return;
+    }
+    if (namaBaru.toLowerCase() === NAMA_ADMIN.toLowerCase()) {
+      pesan.className = 'pesan salah';
+      pesan.textContent = '❌ Nama ini sudah dipakai!';
+      return;
+    }
+    akun.username = namaBaru;
+    localStorage.setItem('namaAkun', namaBaru); // Update nama untuk dashboard
+  }
+
+  // === VALIDASI KODE — HANYA BISA 1x DALAM 5 HARI ===
+  if (kodeBaru) {
+    if (sekarang - terakhirGantiKode < limaHari) {
+      pesan.className = 'pesan salah';
+      pesan.textContent = '❌ Kode baru saja diganti! Tunggu 5 hari lagi.';
+      return;
+    }
+    if (kodeBaru.length < 3) {
+      pesan.className = 'pesan salah';
+      pesan.textContent = '❌ Kode minimal 3 karakter!';
+      return;
+    }
+    akun.kode = kodeBaru;
+    localStorage.setItem('terakhirGantiKode', sekarang.toString()); // Simpan waktu ganti
+  }
+
+  // === SIMPAN SEMUA ===
+  simpanAkun(akun);
+  pesan.className = 'pesan benar';
+  pesan.textContent = '✅ Berhasil Disimpan!';
+
+  setTimeout(() => {
+    pesan.classList.remove('benar');
+    window.location.href = 'dashboard.html';
+  }, 1200);
+}
+
+// === SAAT BUKA HALAMAN — ISI DATA LAMA ===
+window.onload = function() {
+  const akun = bacaAkun();
+  document.getElementById('editNama').value = akun.username || "";
+  
+  // Tampilkan foto profil kalau ada
+  const fotoTersimpan = localStorage.getItem('fotoProfil');
+  if (fotoTersimpan) document.getElementById('fotoProfil').src = fotoTersimpan;
+
+  // Cek batas ganti kode
+  cekBatasGanti();
+};
+</script>
+
+</body>
+</html>
